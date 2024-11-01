@@ -1,0 +1,38 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Update and install NGINX
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Configure NGINX load balancing
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          upstream backend {
+              server 192.168.33.10;
+              server 192.168.33.11;
+          }
+          server {
+              listen 80;
+              location / {
+                  proxy_pass http://backend;
+              }
+          }
+
+    - name: Enable NGINX site
+      file:
+        src: /etc/nginx/sites-available/default
+        dest: /etc/nginx/sites-enabled/default
+        state: link
+
+    - name: Check NGINX configuration syntax
+      command: nginx -t
+
+    - name: Restart NGINX to apply changes
+      service:
+        name: nginx
+        state: restarted
